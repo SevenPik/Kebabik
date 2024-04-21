@@ -1,87 +1,340 @@
 <!DOCTYPE html>
 <html>
-    <head><script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-        <style>
-            body {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                height: 100vh;
-                margin: 0;
-                background: #f4f4f8;
-                font-family: Arial, sans-serif;
-            }
-            .main {
-                background: white;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                width: 300px;
-                box-sizing: border-box;
-            }
-            input[type=text], input[type=file], input[type=range] {
-                width: 100%;
-                padding: 8px;
-                margin: 10px 0;
-                box-sizing: border-box;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-            }
-            a {
-                color: #1da1f2;
-                text-decoration: none;
-                margin-bottom: 10px;
-                display: block;
-            }
-            a:hover {
-                text-decoration: underline;
-            }
-            button {
-                width: 100%;
-                padding: 10px;
-                background-color: #1da1f2;
-                border: none;
-                color: white;
-                border-radius: 4px;
-                cursor: pointer;
-                font-size: 15px;
-            }
-            button:hover {
-                background-color: #0d95e8;
-            }
-            h2 {
-                text-align: center;
-                color: #333;
-            }
-        </style>
-        </head> 
-<body>
-    <div class="main">
-    <a href="Glowna.html">stronka</a>
-<h2>Dodaj nowego kebabika</h2>
-Podaj nazwe <input type="text" id="nazwa"><br>
-Podaj ocene: <input type="range" id="ocena"  min="0" max="5"><br>
-Podaj miasto w ktorym znajduje sie kebab <input type="text" id="miasto"><br>
-<button id="wysli">wysli</button>
-<div id="box"></div>
-</div>
-</body>
-<script>
-    $("#wysli").click(function() {
+<head>
+    <meta charset="utf-8">
+    <title>Dodaj nowego kebabika</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-        var nazwa = $('#nazwa').val();
-        var ocena = $('#ocena').val();
-        var miasto = $('#miasto').val();
+    <style>
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f0f0f0;
+}
 
-        $.ajax({ 
-        url: "http://localhost/strona.php?nazwa="+nazwa+"&ocena="+ocena+"&miasto="+miasto, 
-method : "post",
-        dataType : "text",
-        success : function(odpowiedz) {
-            $("#box").html("<b>Kebaby znalezione w " + miasto + ":</b><br>" + odpowiedz);
+.main {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    width: 400px;
+}
+
+h2 {
+    text-align: center;
+    color: #845EC2;
+}
+
+form {
+    margin-top: 20px;
+}
+
+form input[type="text"],
+form select,
+form button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+form button {
+    background-color: #007bff;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form button:hover {
+    background-color: #0056b3;
+}
+
+#mapid {
+    height: 300px;
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+#pinInfo {
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 10px;
+}
+
+#pinInfo h3 {
+    margin-top: 0;
+    color: #FF6F91;
+}
+
+#pinInfo p {
+    margin: 5px 0;
+}
+
+.rating {
+    width: 100%;
+}
+
+#rangeValue {
+    text-align: center;
+    font-size: 1.2em;
+    margin-bottom: 10px;
+}
+
+.star {
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    background-image: var(--star);
+    background-size: cover;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.star:hover,
+.star.active {
+    transform: scale(1.2);
+}
+
+/* Paleta kolorów */
+:root {
+    --primary-color: #845EC2;
+    --secondary-color: #D65DB1;
+    --tertiary-color: #FF6F91;
+    --quaternary-color: #FF9671;
+    --quinary-color: #FFC75F;
+    --senary-color: #F9F871;
+}
+
+h2 {
+    color: var(--primary-color);
+}
+
+form button {
+    background-color: var(--tertiary-color);
+}
+
+form button:hover {
+    background-color: var(--secondary-color);
+}
+
+#pinInfo h3 {
+    color: var(--quaternary-color);
+}
+
+
+        #rangeValue {
+            position: relative;
+            font-size: 2em;
+            color: #000000;
+            font-weight: 100;
         }
+
+        .rating {
+            --dir: right;
+            --fill: gold;
+            --fillbg: rgba(100, 100, 100, 0.15);
+            --star: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 17.25l-6.188 3.75 1.641-7.031-5.438-4.734 7.172-0.609 2.813-6.609 2.813 6.609 7.172 0.609-5.438 4.734 1.641 7.031z"/></svg>');
+            --stars: 5;
+            --starsize: 3rem;
+            --value: 1;
+            --x: calc(100% * (var(--value) / var(--stars)));
+            block-size: var(--starsize);
+            inline-size: calc(var(--stars) * var(--starsize));
+            position: relative;
+            touch-action: manipulation;
+            -webkit-appearance: none;
+        }
+
+        .rating::-moz-range-track {
+            background: linear-gradient(to var(--dir), var(--fill) 0 var(--x), var(--fillbg) 0 var(--x));
+            block-size: 100%;
+            mask: repeat left center/var(--starsize) var(--star);
+        }
+
+        .rating::-webkit-slider-runnable-track {
+            background: linear-gradient(to var(--dir), var(--fill) 0 var(--x), var(--fillbg) 0 var(--x));
+            block-size: 100%;
+            mask: repeat left center/var(--starsize) var(--star);
+            -webkit-mask: repeat left center/var(--starsize) var(--star);
+        }
+
+        .rating::-moz-range-thumb {
+            height: var(--starsize);
+            opacity: 0;
+            width: calc(var(--starsize) / 2);
+        }
+
+        .rating::-webkit-slider-thumb {
+            height: var(--starsize);
+            opacity: 0;
+            width: calc(var(--starsize) / 2);
+            -webkit-appearance: none;
+        }
+
+        .rating, .rating-label {
+            display: block;
+            font-family: ui-sans-serif, system-ui, sans-serif;
+        }
+
+        .rating-label {
+            margin-block-end: 1rem;
+        }
+
+        #mapid {
+            height: 400px;
+            width:400px;
+        }
+
+        #pinInfo {
+            margin-top: 20px;
+        }
+
+        .star {
+            display: inline-block;
+            width: 2em;
+            height: 2em;
+            background-image: var(--star);
+            background-size: cover;
+            transition: transform 0.2s;
+        }
+
+        .active {
+            transform: scale(1.2);
+        }
+        a {
+            color:black;
+            text-decoration:none;
+        }
+    </style>
+</head>
+<body>
+<div class="main">
+
+    <h2>Dodaj nowego kebabika</h2>
+    <a href="Glowna.html">Powrót</a>
+    <form id="formularz" action="strona.php" method="POST">
+
+        Podaj nazwę lokalu <input type="text" id="nazwa_lokalu" required><br>
+        Podaj typ kebaba <select type="text" id="typ_kebaba" required> 
+            <option value="Wołowina">Wołowina</option>
+            <option value="Kurczak">Kurczak</option>
+            <option value="Baranina">Baranina</option>
+            <option value="Mieszany">Mieszany</option></select><br>
+        Podaj ocenę
+        <input class="rating" id="ocena" max="5" oninput="rangeSlide(this.value),this.style.setProperty('--value', this.value)" step="0.1" type="range">
+        <span id="rangeValue">0</span><br>
+        Podaj miasto w którym znajduje się kebab <input type="text" id="miasto" required><br>
+
+        <button type="submit" id="wyslij">Wyślij</button>
+    </form>
+    <div id="mapid"></div>
+    <div id="pinInfo"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var pins = [];
+        var currentPinIndex = 0;
+        // Funkcja do tworzenia mapy
+        function initMap() {
+            var map = L.map('mapid').setView([53.44009676740571, 14.543749278552804], 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Dodawanie pinezek po kliknięciu na mapę
+            map.on('click', function(e) {
+                var popupContent = prompt("Podaj nazwę dla pinezki:");
+
+                if (popupContent !== null && popupContent.trim() !== "") {
+                    var pin = L.marker(e.latlng).addTo(map)
+                        .bindPopup(popupContent)
+                        .openPopup();
+
+                    pins.push({
+                        name: popupContent,
+                        latlng: e.latlng
+                    });
+
+                    refreshPinInfo();
+                } else {
+                    alert("Nie podano nazwy dla pinezki!");
+                }
+            });
+        }
+
+        // Funkcja odświeżająca informacje o pinezkach pod mapą
+        function refreshPinInfo() {
+            var pinInfoDiv = document.getElementById("pinInfo");
+            pinInfoDiv.innerHTML = "<h3>Lista pinezek:</h3>";
+
+            pins.forEach(function(pin, index) {
+                pinInfoDiv.innerHTML += "<p><strong>Pinezka " + (index + 1) + ":</strong> " + pin.name + " ("
+                    + pin.latlng.lat.toFixed(6) + ", " + pin.latlng.lng.toFixed(6) + ")</p>";
+            });
+        }
+
+        // Inicjalizacja mapy po załadowaniu strony
+        initMap();
+
+        // Obsługa przesyłania danych z formularza
+        $("#formularz").submit(function(event) {
+            event.preventDefault();
+
+            var nazwa_lokalu = $('#nazwa_lokalu').val();
+            var typ_kebaba = $('#typ_kebaba').val();
+            var ocena = $('#ocena').val();
+            var miasto = $('#miasto').val();
+
+            // Sprawdzenie, czy istnieją pinezki
+            if (pins.length > 0) {
+                var currentPin = pins[currentPinIndex];
+                currentPinIndex++;
+                // Przesyłanie danych do serwera
+                $.ajax({
+                    url: "strona.php",
+                    method: "POST",
+                    data: {
+                        nazwa_lokalu: nazwa_lokalu,
+                        typ_kebaba: typ_kebaba,
+                        ocena: ocena,
+                        miasto: miasto,
+                        pin_name: currentPin.name,
+                        latitude: currentPin.latlng.lat,
+                        longitude: currentPin.latlng.lng,
+                    },
+                    dataType: "text",
+                    success: function(response) {
+                        alert(response);
+                    },
+                    error: function(xhr, status, error) {
+                        alert("Błąd: " + error);
+                    }
+                });
+            } else {
+                alert("Nie dodano żadnej pinezki!");
+            }
+        });
     });
-    });
+    function rangeSlide(value) {
+    document.getElementById('rangeValue').innerHTML = value;
+
+    // Ustawianie wartości atrybutu data-value
+    document.getElementById('ocena').setAttribute('data-value', value);
+}
     
 </script>
+</body>
 </html>

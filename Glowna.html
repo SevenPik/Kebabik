@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Strona główna</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <style>
+
+        body {
+            background-color: #f2f2f2;
+        }
+
+        /* Nagłówek */
+        .header {
+            background-color: #333;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* Ranking */
+        .ranking {
+            column-count: 2;
+            column-width: 200px; /* Zwiększyłem szerokość kolumny */
+            column-gap: 20px; 
+        }
+
+        /* Top 3 - podium */
+        .podium {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .ranking {
+             color: black; 
+        }
+
+.ranking {
+    margin-bottom: 10px;
+    break-inside: avoid; /* Zapobiega dzieleniu elementów na dwóch kolumnach */
+}
+
+
+        .ranking {
+    margin-bottom: 10px;
+    break-inside: avoid; /* Zapobiega dzieleniu elementów na dwóch kolumnach */
+}
+        .podium-item {
+            flex: 0 0 30%;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .podium-item h3 {
+            margin-top: 0;
+        }
+
+        /* Mapa */
+        #mapid {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        /* Dodatkowy przycisk */
+        button {
+            display: block;
+            margin: 0 auto;
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            text-decoration: none;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        /* Filtr */
+        .filter-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        a {
+            color:white;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Ranking kebabów</h1>
+    </div>
+
+    <div class="podium">
+        <div class="podium-item" onclick="przeniesDoMiejsca()">
+            <h3>2. Miejsce</h3>
+            <div id="podium2"></div>
+        </div>
+        <div class="podium-item" onclick="przeniesDoMiejsca()">
+            <h3>1. Miejsce</h3>
+            <div id="podium1"></div>
+        </div>
+        <div class="podium-item" onclick="przeniesDoMiejsca()">
+            <h3>3. Miejsce</h3>
+            <div id="podium3"></div>
+        </div>
+    </div>
+
+    <div class="filter-container">
+        <label for="stars-filter">Filtruj pinezki:</label>
+        <select id="stars-filter">
+            <option value="0">Wszystkie</option>
+            <option value="1">⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="5">⭐⭐⭐⭐⭐</option>
+        </select>
+    </div>
+
+    <div id="mapid"></div>
+
+    <button><a href="Kebabik.html">Dodaj kebaba!</a></button><br>
+    <h2>Ranking WSZYSTKICH kebabów</h2>
+    <div class="ranking">
+        <div id="ranking"></div>
+    </div>
+    <script> 
+
+        var map;
+        var markers = [];
+        var data;
+    
+        // Funkcja do pobrania rankingu
+        function pobierzRanking() {
+            $.ajax({
+                url: "pobierz_ranking.php",
+                method: "GET",
+                dataType: "json",
+                success: function (data) {
+                    // Wyświetlenie rankingu
+                    var rankingHTML = "<ol>";
+                    $.each(data, function (index, kebab) {
+                        rankingHTML += "<li>" + kebab.nazwa_lokalu + " - " + kebab.typ_kebaba + " - " + kebab.ocena + "</li>";
+                    });
+                    rankingHTML += "</ol>";
+                    $("#ranking").html(rankingHTML);
+                }
+            });
+        }
+
+        // Funkcja do pobrania top 3
+        function pobierzTop3() {
+    $.ajax({
+        url: "pobierz_top3.php",
+        method: "GET",
+        dataType: "json",
+        success: function(data) {
+            // Sortowanie danych po ocenie malejąco
+            data.sort(function(a, b) {
+                return b.ocena - a.ocena;
+            });
+
+            // Wyświetlenie top 3
+            var podium1HTML = "<p>" + data[0].nazwa_lokalu + " - " + data[0].typ_kebaba + " - " + data[0].ocena + "</p>";
+            var podium2HTML = "<p>" + data[1].nazwa_lokalu + " - " + data[1].typ_kebaba + " - " + data[1].ocena + "</p>";
+            var podium3HTML = "<p>" + data[2].nazwa_lokalu + " - " + data[2].typ_kebaba + " - " + data[2].ocena + "</p>";
+            $("#podium1").html(podium1HTML);
+            $("#podium2").html(podium2HTML);
+            $("#podium3").html(podium3HTML);
+
+            // Dodanie obsługi kliknięcia na podium
+            $("#podium1").click(function() {
+                przeniesDoMiejsca(data[0]);
+            });
+            $("#podium2").click(function() {
+                przeniesDoMiejsca(data[1]);
+            });
+            $("#podium3").click(function() {
+                przeniesDoMiejsca(data[2]);
+            });
+        }
+    });
+}
+
+        // Funkcja do pobrania danych do mapy
+        function pobierzLokacje() {
+            $.ajax({
+                url: "pobierz_lokacje.php",
+                method: "GET",
+                dataType: "json",
+                success: function (lokacje) {
+                    data = lokacje;
+                    // Utworzenie mapy i znaczników
+                    map = L.map('mapid').setView([53.447049, 14.517532], 9); // Ustawia domyślny punkt centralny
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    }).addTo(map);
+
+                    markers = []; // Wyczyszczenie istniejących znaczników
+
+                    $.each(data, function (index, kebab) {
+                        var marker = L.marker([kebab.latitude, kebab.longitude]);
+
+                        // Dodawanie gwiazdek do markera
+                        var stars = "";
+                        for (var i = 0; i < kebab.ocena; i++) {
+                            stars += "⭐";
+                        }
+
+                        marker.bindPopup("<b>" + kebab.pin_name + "</b><br>Ocena: " + kebab.ocena + "<br>" + stars);
+                        markers.push(marker);
+                    });
+
+                    // Dodanie wszystkich markerów do mapy
+                    var starsFilter = $("#stars-filter").val();
+                    filtrujPinezki(starsFilter);
+                }
+            });
+        }
+
+        // Wywołanie funkcji po załadowaniu strony
+        pobierzRanking();
+        pobierzTop3();
+        pobierzLokacje();
+
+        // Obsługa zmiany wartości w filtrze gwiazdek
+        $("#stars-filter").change(function () {
+            var starsFilter = $(this).val();
+            filtrujPinezki(starsFilter);
+        });
+
+        // Funkcja filtrująca pinezki na mapie na podstawie ilości gwiazdek
+        function filtrujPinezki(starsFilter) {
+            // Usunięcie istniejących znaczników z mapy
+            markers.forEach(function (marker) {
+                map.removeLayer(marker);
+            });
+
+            // Dodanie na mapę tylko tych znaczników, które spełniają warunek filtrowania
+            markers.forEach(function (marker) {
+                var stars = marker.getPopup().getContent().match(/⭐/g).length; // Pobranie ilości gwiazdek z treści popupu
+                if (stars >= starsFilter) {
+                    map.addLayer(marker);
+                }
+            });
+        }
+
+      
+    </script>
+</body>
+</html>
